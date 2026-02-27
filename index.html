@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>KCR 커핑앱 v3.0</title>
+<style>
+:root{--bg:#000;--panel:#1a1a1a;--text:#fff;--border:#333}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,sans-serif;font-size:16px;height:100dvh;overflow:hidden}
+.panel{display:none;padding:20px;max-height:100dvh;overflow-y:auto}
+.panel.active{display:block}
+.btn{width:100%;padding:16px;background:#fff;color:#000;border:none;border-radius:8px;font-weight:600;font-size:16px;cursor:pointer;margin-bottom:12px}
+.btn:disabled{background:#555;color:#999;cursor:not-allowed}
+.btn-outline{width:100%;padding:16px;background:transparent;color:#fff;border:2px solid var(--border);border-radius:8px;font-weight:600;cursor:pointer;margin-bottom:12px}
+input,textarea,select{width:100%;padding:14px;background:#1a1a1a;border:1px solid var(--border);border-radius:8px;color:#fff;font-size:16px;margin-bottom:16px}
+textarea{min-height:100px;resize:vertical;font-family:inherit}
+.toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#fff;color:#000;padding:16px 24px;border-radius:8px;font-weight:600;z-index:10000;display:none}
+.toast.show{display:block;animation:fadein .3s}
+.toast.error{background:#ff4444;color:#fff}
+@keyframes fadein{from{bottom:0;opacity:0}to{bottom:30px;opacity:1}}
+.overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100dvh;background:rgba(0,0,0,.8);z-index:9999;align-items:center;justify-content:center}
+.overlay.active{display:flex}
+.spinner{border:4px solid #333;border-top:4px solid #fff;border-radius:50%;width:48px;height:48px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.eval-container{display:none;flex-direction:column;height:100dvh;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:var(--bg)}
+.eval-container.active{display:flex}
+.eval-header{background:#1a1a1a;border-bottom:2px solid var(--border);padding:16px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.eval-title{font-size:20px;font-weight:700}
+.eval-total{font-size:28px;font-weight:700}
+.cup-nav-top{background:#1a1a1a;border-bottom:2px solid var(--border);padding:12px;display:flex;gap:8px;overflow-x:auto;flex-shrink:0;align-items:center}
+.cup-nav-left{display:flex;gap:8px;overflow-x:auto;flex:1}
+.cup-nav-right{display:flex;gap:8px;flex-shrink:0;margin-left:12px}
+.cup-nav-btn{min-width:70px;height:60px;background:#2a2a2a;border:2px solid var(--border);border-radius:8px;color:#999;font-size:14px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.cup-nav-btn.active{background:#fff;color:#000;border-color:#fff}
+.cup-nav-num{font-size:16px}
+.cup-nav-score{font-size:11px;margin-top:4px}
+.submit-nav-btn{padding:12px 16px;background:#fff;color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;height:60px;display:flex;align-items:center}
+.submit-nav-btn:disabled{background:#555;color:#999;cursor:not-allowed}
+.eval-content{flex:1;overflow-y:auto;padding:16px;padding-bottom:60px}
+.attr-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;background:#2a2a2a;padding:10px;border-radius:10px}
+.attr-tab{padding:12px 8px;background:#1a1a1a;border:2px solid var(--border);border-radius:8px;cursor:pointer;font-weight:600;font-size:13px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center}
+.attr-tab.active{background:#fff;color:#000;border-color:#fff}
+.attr-tab.filled{border-color:#fff;background:rgba(255,255,255,0.1)}
+.attr-card{background:#2a2a2a;border-radius:12px;padding:16px;margin-bottom:20px;border:2px solid var(--border)}
+.score-display{text-align:center;font-size:48px;font-weight:700;margin-bottom:8px}
+.score-meaning{text-align:center;font-size:16px;color:#999;margin-bottom:16px;font-weight:600}
+.sweetness-multiplier{text-align:center;font-size:14px;color:#999;margin-bottom:16px}
+.score-slider{-webkit-appearance:none;width:100%;height:8px;border-radius:5px;background:#333;outline:none}
+.score-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#fff;cursor:pointer}
+.score-slider:disabled{opacity:0.5;cursor:not-allowed}
+.score-slider:disabled::-webkit-slider-thumb{cursor:not-allowed;background:#777}
+.score-labels{display:flex;justify-content:space-between;color:#999;font-size:12px;margin-top:8px}
+.score-lock{display:flex;align-items:center;justify-content:center;margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:6px}
+.score-lock input[type="checkbox"]{width:auto;margin:0 8px 0 0}
+.score-lock label{color:#999;font-size:14px;cursor:pointer;margin:0}
+.intensity-label{text-align:center;font-weight:600;margin-bottom:12px;color:#999;font-size:14px;margin-top:20px}
+.intensity-grid{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.intensity-btn{padding:12px 10px;background:#1a1a1a;border:2px solid var(--border);border-radius:6px;cursor:pointer;font-weight:600;font-size:11px;text-align:center;min-height:56px;min-width:65px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.intensity-btn.selected{background:#fff;color:#000;border-color:#fff}
+.smart-tags-section{background:rgba(255,255,255,0.03);border:2px solid #555;border-radius:8px;padding:16px;margin:20px 0}
+.smart-tags-title{font-weight:700;margin-bottom:8px;font-size:15px}
+.smart-tags-hint{font-size:12px;color:#999;margin-bottom:12px}
+.selected-tags{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;min-height:32px}
+.selected-tag{background:#fff;color:#000;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600}
+.category-primary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.category-btn-primary{background:#1a1a1a;border:2px solid var(--border);padding:10px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.category-btn-primary.selected{background:#fff;color:#000;border-color:#fff}
+.category-secondary{display:none;flex-wrap:wrap;gap:6px;margin:8px 0;padding:12px;background:rgba(0,0,0,0.3);border-radius:6px}
+.category-secondary.active{display:flex}
+.category-btn-secondary{background:#2a2a2a;border:1px solid var(--border);padding:8px 12px;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600}
+.category-btn-secondary.selected{background:#fff;color:#000;border-color:#fff}
+.category-tertiary{display:none;flex-wrap:wrap;gap:6px;margin:8px 0;padding:10px;background:rgba(0,0,0,0.5);border-radius:6px}
+.category-tertiary.active{display:flex}
+.category-btn-tertiary{background:#1a1a1a;border:1px solid var(--border);padding:6px 10px;border-radius:4px;cursor:pointer;font-size:11px}
+.category-btn-tertiary.selected{background:#fff;color:#000;border-color:#fff}
+.category-btn-tertiary.conflict{background:#ff4444;color:#fff;border-color:#ff4444;opacity:0.5;cursor:not-allowed}
+.category-btn-secondary.conflict{background:#ff4444;color:#fff;border-color:#ff4444;opacity:0.5;cursor:not-allowed}
+.btn-assistant{width:100%;padding:14px;background:#fff;color:#000;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;margin:16px 0}
+.btn-assistant:disabled{background:#555;color:#999;cursor:not-allowed}
+.generated-comments-area{margin-top:16px;padding:12px;background:rgba(255,255,255,0.05);border-radius:6px;display:none}
+.generated-comments-area.active{display:block}
+.comment-variation{background:#2a2a2a;border:1px solid var(--border);padding:12px;margin:8px 0;border-radius:6px;cursor:pointer;font-size:14px;line-height:1.6}
+.comment-variation:hover{border-color:#fff}
+.comment-label{display:block;margin-bottom:8px;font-weight:600;color:#999;font-size:14px;margin-top:20px;padding-top:20px;border-top:2px solid #555}
+.verification-result{margin-top:16px;padding:16px;border-radius:8px;border:2px solid var(--border);display:none}
+.verification-result.active{display:block}
+.verification-result.critical{border-color:#ff4444;background:rgba(255,68,68,0.1)}
+.verification-result.critical .verification-issue{color:#ff4444}
+.verification-result.high{border-color:#ffaa00;background:rgba(255,170,0,0.1)}
+.verification-result.high .verification-issue{color:#ffaa00}
+.verification-result.medium{border-color:#ffaa00;background:rgba(255,170,0,0.05)}
+.verification-result.medium .verification-issue{color:#ffaa00}
+.verification-result.none{border-color:#00ff88;background:rgba(0,255,136,0.05)}
+.verification-result.none .verification-issue{color:#00ff88}
+.verification-issue{font-weight:600;margin-bottom:8px;font-size:14px}
+.verification-suggestion{font-size:13px;color:#999;line-height:1.5}
+h2,h3{text-align:center;margin-bottom:20px;font-weight:700;font-size:22px}
+h3{font-size:18px;margin:24px 0 16px 0}
+.oneshot-container{background:rgba(255,255,255,0.05);border:2px solid #fff;border-radius:12px;padding:20px;margin:20px 0}
+.review-item{background:#2a2a2a;border:2px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;cursor:pointer}
+.review-item:hover{border-color:#fff}
+.cal-cup-group{background:#2a2a2a;border:2px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.cal-stats{background:#1a1a1a;padding:12px;margin:8px 0 16px 0;border-radius:6px;border:1px solid var(--border)}
+.cal-stats-title{font-size:14px;font-weight:700;margin-bottom:8px;color:#999}
+.cal-stats-row{display:flex;justify-content:space-between;margin:4px 0;font-size:13px}
+.cal-judge-row{background:#1a1a1a;padding:12px;margin:8px 0;border-radius:6px;border:1px solid var(--border)}
+.cal-judge-row strong{color:#fff;font-size:16px}
+.cal-scores{color:#999;font-size:13px;margin-top:8px}
+.review-attr{background:#2a2a2a;border:2px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px}
+.review-attr h4{margin-bottom:12px;font-size:16px;font-weight:700}
+.cup-detail-card{background:#2a2a2a;border:2px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.cup-detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cup-detail-judge{font-size:16px;font-weight:700}
+.cup-detail-total{font-size:24px;font-weight:700;color:#00ff88}
+.cup-detail-scores{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.cup-detail-score-item{background:#1a1a1a;padding:8px;border-radius:4px}
+.cup-detail-score-label{font-size:11px;color:#999;margin-bottom:4px}
+.cup-detail-score-value{font-size:14px;font-weight:600}
+.cup-detail-comments{border-top:1px solid #444;padding-top:12px;margin-top:12px}
+.cup-detail-comment{font-size:12px;color:#999;margin-bottom:6px;line-height:1.4}
+.auto-save-indicator{position:fixed;bottom:20px;right:20px;background:#00ff88;color:#000;padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600;z-index:9998;display:none}
+.auto-save-indicator.active{display:block;animation:fadeInOut 2s}
+@keyframes fadeInOut{0%,100%{opacity:0}10%,90%{opacity:1}}
+.role-badge{display:inline-block;background:#fff;color:#000;padding:6px 14px;border-radius:6px;font-size:11px;font-weight:700;margin-left:12px;letter-spacing:0.5px}
+</style>
+</head>
+<body>
+
+<div id="overlay" class="overlay"><div class="spinner"></div></div>
+<div id="toast" class="toast"></div>
+<div id="autoSaveIndicator" class="auto-save-indicator">자동 저장됨 ✓</div>
+
+<div id="loginScreen" class="panel active">
+  <h2>KCR 커핑앱 v3.0</h2>
+  <input type="text" id="loginName" placeholder="이름">
+  <input type="tel" id="loginPhone" placeholder="전화번호">
+  <button class="btn" onclick="doLogin()">로그인</button>
+</div>
+
+<div id="adminScreen" class="panel">
+  <h2>관리자</h2>
+  <p style="text-align:center;color:#999;margin-bottom:24px"><span id="adminUserName"></span><span class="role-badge">관리자</span></p>
+  <button class="btn" onclick="loadAllCompletedReviews()">✅ 검수 완료 목록</button>
+  <button class="btn-outline" onclick="logout()">로그아웃</button>
+  <h3>TOP 20 순위</h3>
+  <button class="btn" onclick="downloadPDF()" style="margin-bottom:16px">📄 TOP 20 PDF 다운로드</button>
+  <div id="top50Area"></div>
+</div>
+
+<div id="completedListScreen" class="panel">
+  <h2>검수 완료 목록</h2>
+  <div id="completedListArea"></div>
+  <button class="btn-outline" onclick="backHome()">뒤로가기</button>
+</div>
+
+<div id="completedDetailScreen" class="panel">
+  <h2>검수 완료 상세</h2>
+  <div id="completedDetailArea"></div>
+  <button class="btn-outline" onclick="showScreen('completedListScreen')">목록으로</button>
+</div>
+
+<div id="cupDetailScreen" class="panel">
+  <h2>컵별 상세 평가</h2>
+  <div id="cupDetailArea"></div>
+  <button class="btn" onclick="downloadCupPDF()">📄 이 컵 PDF 다운로드</button>
+  <button class="btn-outline" onclick="backHome()">뒤로가기</button>
+</div>
+
+<div id="headScreen" class="panel">
+  <h2>헤드 심사위원</h2>
+  <p style="text-align:center;color:#999;margin-bottom:24px"><span id="headUserName"></span><span class="role-badge">헤드심사위원</span></p>
+  <div class="oneshot-container">
+    <div style="text-align:center;font-size:20px;font-weight:700;margin-bottom:16px">평가 시작</div>
+    <input type="number" id="headStartCup" placeholder="시작 컵 번호">
+    <input type="number" id="headEndCup" placeholder="마지막 컵 번호">
+    <select id="headProcess" style="margin-bottom:16px">
+      <option value="">프로세스 선택</option>
+      <option value="Washed">Washed Process</option>
+      <option value="Natural">Natural Process</option>
+    </select>
+    <select id="headMode">
+      <option value="judge">Judge 모드</option>
+      <option value="calibration">Calibration 모드</option>
+    </select>
+    <button class="btn" onclick="startEvalByHead()">평가 시작</button>
+  </div>
+  <button class="btn-outline" onclick="loadCalibrationCups()">Calibration 결과</button>
+  <button class="btn-outline" onclick="loadReviews()">검수 대기 목록</button>
+  <button class="btn-outline" onclick="logout()">로그아웃</button>
+</div>
+
+<div id="judgeScreen" class="panel">
+  <h2>심사위원</h2>
+  <p style="text-align:center;color:#999;margin-bottom:24px"><span id="judgeUserName"></span><span class="role-badge">심사위원</span></p>
+  <div class="oneshot-container">
+    <div style="text-align:center;font-size:20px;font-weight:700;margin-bottom:16px">평가 시작</div>
+    <input type="number" id="judgeStartCup" placeholder="시작 컵 번호">
+    <input type="number" id="judgeEndCup" placeholder="마지막 컵 번호">
+    <select id="judgeProcess" style="margin-bottom:16px">
+      <option value="">프로세스 선택</option>
+      <option value="Washed">Washed Process</option>
+      <option value="Natural">Natural Process</option>
+    </select>
+    <select id="judgeMode">
+      <option value="judge">Judge 모드</option>
+      <option value="calibration">Calibration 모드</option>
+    </select>
+    <button class="btn" onclick="startEvalByJudge()">평가 시작</button>
+  </div>
+  <button class="btn-outline" onclick="loadReviews()">검수 대기 목록</button>
+  <button class="btn-outline" onclick="logout()">로그아웃</button>
+</div>
+
+<div id="calListScreen" class="panel">
+  <h2>Calibration 결과</h2>
+  <div id="calCupList"></div>
+  <button class="btn-outline" onclick="backHome()">뒤로가기</button>
+</div>
+
+<div id="calResultScreen" class="panel">
+  <h2>Calibration 상세</h2>
+  <div id="calResultArea"></div>
+  <button class="btn-outline" onclick="showScreen('calListScreen')">목록으로</button>
+</div>
+
+<div id="reviewListScreen" class="panel">
+  <h2>검수 대기</h2>
+  <div id="reviewListArea"></div>
+  <button class="btn-outline" onclick="backHome()">뒤로가기</button>
+</div>
+
+<div id="reviewDetailScreen" class="panel">
+  <h2>검수 및 수정</h2>
+  <div id="reviewDetailArea"></div>
+  <button class="btn" onclick="saveReview()">검수 완료</button>
+  <button class="btn-outline" onclick="backToReviewList()">취소</button>
+</div>
+
+<div id="evalContainer" class="eval-container">
+  <div class="eval-header">
+    <div class="eval-title"><span id="currentCupNum">Cup -</span></div>
+    <div class="eval-total" id="evalTotalScore">0.00</div>
+  </div>
+  <div class="cup-nav-top">
+    <div class="cup-nav-left" id="cupNavigation"></div>
+    <div class="cup-nav-right">
+      <button class="submit-nav-btn" onclick="handleSubmitClick()" id="submitNavBtn">제출완료</button>
+    </div>
+  </div>
+  <div class="eval-content">
+    <div class="attr-tabs" id="attrTabs">
+      <div class="attr-tab active" data-attr="flavor">Flavor</div>
+      <div class="attr-tab" data-attr="aftertaste">Aftertaste</div>
+      <div class="attr-tab" data-attr="acidity">Acidity</div>
+      <div class="attr-tab" data-attr="body">Body</div>
+      <div class="attr-tab" data-attr="sweetness">Sweetness</div>
+      <div class="attr-tab" data-attr="overall">Overall</div>
+    </div>
+    <div id="attrCardArea"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+var currentUser=null;
+var evalData={cups:[],currentCupIndex:0,currentAttr:'flavor',startCup:0,endCup:0,mode:''};
+var currentReviewData=null;
+var isSubmitting=false;
+var MAX_TAGS=5;
+var submitDebounceTimer=null;
+var autoSaveTimer=null;
+var currentCupDetailData=null;
+
+// ===== v3.0: 스마트태그 계층 구조 =====
+var TAG_HIERARCHY={
+  '과일같은':['베리','말린 과일','기타 과일','감귤류'],
+  '베리':['블랙베리','스트로베리','블루베리','크랜베리'],
+  '말린 과일':['건포도','말린 자두'],
+  '기타 과일':['코코넛','체리','석류','파인애플','포도','사과','복숭아','배'],
+  '감귤류':['자몽','오렌지','레몬','라임'],
+  '꽃향':['홍차','캐모마일','장미','자스민'],
+  '달콤한':['브라운슈거','바닐라','메이플시럽','캐러멜','꿀'],
+  '발효된':['와인 같은','위스키','발효된','과숙한'],
+  '녹색/채소같은':['덜 익은','풋내','채소 같은','건초 같은','허브 같은'],
+  '구운':['곡류','탄 듯한','담배 같은','맥아','곡물','노릇하게 구운','연기 같은','재 같은','매캐한'],
+  '향신료':['정향','시나몬','육두구','아니스','후추','톡 쏘는'],
+  '견과류':['아몬드','헤이즐넛','땅콩'],
+  '코코아':['다크 초콜릿','초콜릿','카카오']
+};
+
+var ATTRIBUTE_CONFLICTS={
+  body:{
+    '거친':['부드러운','벨벳 같은','매끄러운','실키한','크리미한'],
+    '텁텁한':['부드러운','벨벳 같은','매끄러운','실키한','크리미한','클린한'],
+    '부드러운':['거친','텁텁한','입안이 마르는','드라이','금속성'],
+    '벨벳 같은':['거친','텁텁한','입안이 마르는','드라이'],
+    '매끄러운':['거친','텁텁한','금속성'],
+    '실키한':['거친','텁텁한','금속성'],
+    '시럽같은':['드라이','입안이 마르는'],
+    '금속성':['부드러운','벨벳 같은','매끄러운','실키한','크리미한'],
+    '기름진':['드라이','입안이 마르는','클린한'],
+    '클린한':['텁텁한','기름진','금속성'],
+    '입안이 마르는':['부드러운','벨벳 같은','시럽같은','기름진'],
+    '드라이':['부드러운','시럽같은','기름진','크리미한']
+  }
+};
+
+var INTENSITY_LEVELS={
+  1:{label:'매우 약함',value:1},2:{label:'약함',value:2},3:{label:'약간 약함',value:3},
+  4:{label:'중간',value:4},5:{label:'약간 강함',value:5},6:{label:'강함',value:6},7:{label:'매우 강함',value:7}
+};
+
+var SCORE_MEANINGS={
+  0:'매우 부정적',0.25:'매우 부정적',0.5:'매우 부정적',0.75:'매우 부정적',
+  1:'부정적',1.25:'부정적',1.5:'부정적',1.75:'부정적',
+  2:'다소 부족',2.25:'다소 부족',2.5:'다소 부족',2.75:'다소 부족',
+  3:'보통',3.25:'보통',3.5:'보통',3.75:'보통',
+  4:'좋음',4.25:'좋음',4.5:'좋음',4.75:'좋음',5:'매우 우수'
+};
+
+var SMART_TAGS={
+  flavor:{
+    '꽃향':{'홍차':['홍차'],'꽃향':['캐모마일','장미','자스민']},
+    '과일같은':{
+      '베리':['블랙베리','스트로베리','블루베리','크랜베리'],
+      '말린 과일':['건포도','말린 자두'],
+      '기타 과일':['코코넛','체리','석류','파인애플','포도','사과','복숭아','배'],
+      '감귤류':['자몽','오렌지','레몬','라임']
+    },
+    '달콤한':{'달콤한':['브라운슈거','바닐라','메이플시럽','캐러멜','꿀']},
+    '발효된':{'발효된':['와인 같은','위스키','발효된','과숙한']},
+    '녹색/채소같은':{'녹색/채소같은':['덜 익은','풋내','채소 같은','건초 같은','허브 같은']},
+    '구운':{
+      '구운':['곡류','탄 듯한','담배 같은','맥아','곡물','노릇하게 구운'],
+      '연기/재':['연기 같은','재 같은','매캐한']
+    },
+    '향신료':{'향신료':['정향','시나몬','육두구','아니스','후추','톡 쏘는']},
+    '견과류':{'견과류':['아몬드','헤이즐넛','땅콩']},
+    '코코아':{'코코아':['다크 초콜릿','초콜릿','카카오']},
+    '기타':{'기타':['나무 같은','곰팡이','종이','화학적인','감자','흙','오래된']}
+  },
+  aftertaste:{
+    '꽃향':{'홍차':['홍차'],'꽃향':['캐모마일','장미','자스민']},
+    '과일같은':{
+      '베리':['블랙베리','스트로베리','블루베리','크랜베리'],
+      '말린 과일':['건포도','말린 자두'],
+      '기타 과일':['코코넛','체리','석류','파인애플','포도','사과','복숭아','배'],
+      '감귤류':['자몽','오렌지','레몬','라임']
+    },
+    '달콤한':{'달콤한':['브라운슈거','바닐라','메이플시럽','캐러멜','꿀']},
+    '발효된':{'발효된':['와인 같은','위스키','발효된','과숙한']},
+    '녹색/채소같은':{'녹색/채소같은':['덜 익은','풋내','채소 같은','건초 같은','허브 같은']},
+    '구운':{
+      '구운':['곡류','탄 듯한','담배 같은','맥아','곡물','노릇하게 구운'],
+      '연기/재':['연기 같은','재 같은','매캐한']
+    },
+    '향신료':{'향신료':['정향','시나몬','육두구','아니스','후추','톡 쏘는']},
+    '견과류':{'견과류':['아몬드','헤이즐넛','땅콩']},
+    '코코아':{'코코아':['다크 초콜릿','초콜릿','카카오']},
+    '기타':{'기타':['나무 같은','곰팡이','종이','화학적인','감자','흙','오래된']}
+  },
+  acidity:{
+    '과일같은':{
+      '베리':['블랙베리','스트로베리','블루베리','크랜베리'],
+      '말린 과일':['건포도','말린 자두'],
+      '기타 과일':['코코넛','체리','석류','파인애플','포도','사과','복숭아','배'],
+      '감귤류':['자몽','오렌지','레몬','라임']
+    },
+    '발효된':{'발효된':['와인 같은','위스키','발효된','과숙한']},
+    '녹색/채소같은':{'녹색/채소같은':['덜 익은','풋내','채소 같은','건초 같은','허브 같은']},
+    '기타':{'기타':['나무 같은','곰팡이','종이','화학적인','감자','흙','오래된']}
+  },
+  body:{
+    '질감':['거친','텁텁한','부드러운','벨벳 같은','매끄러운','실키한','시럽같은','금속성','기름진','클린한','입안이 마르는','드라이']
+  },
+  sweetness:{
+    '과일같은':{
+      '베리':['블랙베리','스트로베리','블루베리','크랜베리'],
+      '말린 과일':['건포도','말린 자두'],
+      '기타 과일':['코코넛','체리','석류','파인애플','포도','사과','복숭아','배'],
+      '감귤류':['자몽','오렌지','레몬','라임']
+    },
+    '달콤한':{'달콤한':['브라운슈거','바닐라','메이플시럽','캐러멜','꿀']},
+    '발효된':{'발효된':['와인 같은','위스키','발효된','과숙한']},
+    '구운':{
+      '구운':['곡류','탄 듯한','담배 같은','맥아','곡물','노릇하게 구운'],
+      '연기/재':['연기 같은','재 같은','매캐한']
+    },
+    '견과류':{'견과류':['아몬드','헤이즐넛','땅콩']},
+    '향신료':{'향신료':['정향','시나몬','육두구','아니스','후추','톡 쏘는']},
+    '코코아':{'코코아':['다크 초콜릿','초콜릿','카카오']}
+  }
+};
+
+// ===== v3.0: 계층 구조 중복 제거 함수 (완전 재작성) =====
+function filterHierarchicalTags(tags, attrKey){
+  var smartTagsStructure = SMART_TAGS[attrKey];
+  if (!smartTagsStructure) return tags;
+  
+  var toRemove = {};
+  var tagLevels = {}; // 각 태그의 레벨 추적
+  
+  // 먼저 각 태그가 어느 레벨에 속하는지 파악
+  for (var primary in smartTagsStructure) {
+    tagLevels[primary] = 'primary';
+    var secondaryObj = smartTagsStructure[primary];
+    
+    if (typeof secondaryObj === 'object' && !Array.isArray(secondaryObj)) {
+      for (var secondary in secondaryObj) {
+        tagLevels[secondary] = 'secondary';
+        var tertiaryArr = secondaryObj[secondary];
+        
+        for (var i = 0; i < tertiaryArr.length; i++) {
+          tagLevels[tertiaryArr[i]] = 'tertiary';
+        }
+      }
+    }
+  }
+  
+  // 각 Primary 카테고리별로 처리
+  for (var primary in smartTagsStructure) {
+    var secondaryObj = smartTagsStructure[primary];
+    
+    if (typeof secondaryObj === 'object' && !Array.isArray(secondaryObj)) {
+      var hasTertiary = false;
+      var hasSecondary = false;
+      var selectedSecondaries = [];
+      
+      // Tertiary 태그 확인
+      for (var secondary in secondaryObj) {
+        var tertiaryArr = secondaryObj[secondary];
+        
+        for (var i = 0; i < tertiaryArr.length; i++) {
+          if (tags.indexOf(tertiaryArr[i]) > -1) {
+            hasTertiary = true;
+            // Tertiary가 선택되었고, Secondary와 이름이 다르면 Secondary 제거
+            if (tertiaryArr[i] !== secondary) {
+              toRemove[secondary] = true;
+            }
+          }
+        }
+        
+        // Secondary 태그 확인
+        if (tags.indexOf(secondary) > -1) {
+          hasSecondary = true;
+          selectedSecondaries.push(secondary);
+        }
+      }
+      
+      // Primary 제거 조건: 하위 태그가 있고, Primary와 이름이 다른 경우만
+      if ((hasTertiary || hasSecondary) && tags.indexOf(primary) > -1) {
+        var shouldRemovePrimary = false;
+        
+        // Primary와 다른 이름의 하위 태그가 있으면 Primary 제거
+        for (var secondary in secondaryObj) {
+          if (tags.indexOf(secondary) > -1 && secondary !== primary) {
+            shouldRemovePrimary = true;
+            break;
+          }
+          
+          var tertiaryArr = secondaryObj[secondary];
+          for (var i = 0; i < tertiaryArr.length; i++) {
+            if (tags.indexOf(tertiaryArr[i]) > -1 && tertiaryArr[i] !== primary) {
+              shouldRemovePrimary = true;
+              break;
+            }
+          }
+          if (shouldRemovePrimary) break;
+        }
+        
+        if (shouldRemovePrimary) {
+          toRemove[primary] = true;
+        }
+      }
+    }
+  }
+  
+  // 제거 대상이 아닌 태그만 반환
+  var filtered = [];
+  for (var i = 0; i < tags.length; i++) {
+    if (!toRemove[tags[i]]) {
+      filtered.push(tags[i]);
+    }
+  }
+  
+  return filtered;
+}
+
+function getScoreMeaning(score){
+  var rounded=Math.round(score*4)/4;
+  return SCORE_MEANINGS[rounded]||'보통';
+}
+
+function showOverlay(){document.getElementById('overlay').classList.add('active')}
+function hideOverlay(){document.getElementById('overlay').classList.remove('active')}
+
+function showToast(msg,isError){
+  var t=document.getElementById('toast');
+  t.innerText=msg;
+  t.className='toast show'+(isError?' error':'');
+  setTimeout(function(){t.className='toast'},3000);
+}
+
+function showScreen(screenId){
+  var panels=document.querySelectorAll('.panel');
+  panels.forEach(function(p){p.classList.remove('active')});
+  if(screenId){
+    var target=document.getElementById(screenId);
+    if(target)target.classList.add('active');
+  }
+  document.getElementById('evalContainer').classList.remove('active');
+}
+
+function doLogin(){
+  var name=document.getElementById('loginName').value.trim();
+  var phone=document.getElementById('loginPhone').value.trim();
+  if(!name||!phone){showToast('이름과 전화번호를 입력하세요',true);return}
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlay();
+      if(res.success){
+        currentUser=res;
+        restoreSession(res);
+      }else{showToast(res.message,true)}
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('로그인 오류: '+err,true)})
+    .loginUser(name,phone);
+}
+
+function restoreSession(user){
+  currentUser=user;
+  var savedEval=localStorage.getItem('kcr_eval_'+user.userID);
+  if(savedEval){
+    try{
+      var parsed=JSON.parse(savedEval);
+      if(confirm('중단된 평가를 이어서 하시겠습니까?\n컵: '+parsed.startCup+'~'+parsed.endCup)){
+        evalData=parsed;
+        renderCupNavigation();
+        renderAttrCard();
+        updateTotalScore();
+        document.getElementById('evalContainer').classList.add('active');
+        startAutoSave();
+        return;
+      }else{localStorage.removeItem('kcr_eval_'+user.userID)}
+    }catch(e){localStorage.removeItem('kcr_eval_'+user.userID)}
+  }
+  if(user.role==='admin'){
+    document.getElementById('adminUserName').innerText=user.name;
+    showScreen('adminScreen');
+    refreshTop50();
+  }else if(user.role.indexOf('head')===0){
+    document.getElementById('headUserName').innerText=user.name;
+    showScreen('headScreen');
+  }else{
+    document.getElementById('judgeUserName').innerText=user.name;
+    showScreen('judgeScreen');
+  }
+}
+
+function logout(){
+  stopAutoSave();
+  if(currentUser)localStorage.removeItem('kcr_eval_'+currentUser.userID);
+  currentUser=null;
+  showScreen('loginScreen');
+  showToast('로그아웃');
+}
+
+function startEvalByHead(){
+  var start=parseInt(document.getElementById('headStartCup').value);
+  var end=parseInt(document.getElementById('headEndCup').value);
+  var process=document.getElementById('headProcess').value;
+  var mode=document.getElementById('headMode').value;
+  if(!start||!end||start>end){showToast('올바른 컵 범위를 입력하세요',true);return}
+  if(!process){showToast('프로세스를 선택하세요',true);return}
+  initEvaluation(start,end,mode,process);
+}
+
+function startEvalByJudge(){
+  var start=parseInt(document.getElementById('judgeStartCup').value);
+  var end=parseInt(document.getElementById('judgeEndCup').value);
+  var process=document.getElementById('judgeProcess').value;
+  var mode=document.getElementById('judgeMode').value;
+  if(!start||!end||start>end){showToast('올바른 컵 범위를 입력하세요',true);return}
+  if(!process){showToast('프로세스를 선택하세요',true);return}
+  initEvaluation(start,end,mode,process);
+}
+
+function initEvaluation(startCup,endCup,mode,process){
+  evalData.startCup=startCup;
+  evalData.endCup=endCup;
+  evalData.mode=mode;
+  evalData.process=process;
+  evalData.cups=[];
+  evalData.currentCupIndex=0;
+  evalData.currentAttr='flavor';
+  for(var i=startCup;i<=endCup;i++){
+    evalData.cups.push({
+      cupNumber:i,
+      flavor:3.0,flavorIntensity:4,noteFlavor:'',flavorLocked:false,
+      aftertaste:3.0,aftertastePersistence:4,noteAftertaste:'',aftertasteLocked:false,
+      acidity:3.0,acidityIntensity:4,noteAcidity:'',acidityLocked:false,
+      body:3.0,bodyIntensity:4,noteBody:'',bodyLocked:false,
+      sweetness:3.0,sweetnessIntensity:4,noteSweetness:'',sweetnessLocked:false,
+      overall:3.0,noteOverall:'',overallLocked:false,
+      selectedTags:{flavor:[],aftertaste:[],acidity:[],body:[],sweetness:[],overall:[]},
+      lastAttr:'flavor'
+    });
+  }
+  renderCupNavigation();
+  renderAttrCard();
+  updateTotalScore();
+  document.getElementById('evalContainer').classList.add('active');
+  saveEvalState();
+  startAutoSave();
+}
+
+function saveEvalState(){
+  if(currentUser)localStorage.setItem('kcr_eval_'+currentUser.userID,JSON.stringify(evalData));
+}
+
+function renderCupNavigation(){
+  var navHtml='';
+  evalData.cups.forEach(function(cup,index){
+    var total=cup.flavor+cup.aftertaste+cup.acidity+cup.body+(cup.sweetness*2)+cup.overall;
+    var isActive=index===evalData.currentCupIndex?'active':'';
+    navHtml+='<div class="cup-nav-btn '+isActive+'" onclick="switchCup('+index+')">';
+    navHtml+='<div class="cup-nav-num">Cup '+cup.cupNumber+'</div>';
+    navHtml+='<div class="cup-nav-score">'+total.toFixed(1)+'점</div></div>';
+  });
+  document.getElementById('cupNavigation').innerHTML=navHtml;
+  document.getElementById('currentCupNum').textContent='Cup '+evalData.cups[evalData.currentCupIndex].cupNumber;
+}
+
+function switchCup(index){
+  saveCurrent();
+  evalData.cups[evalData.currentCupIndex].lastAttr=evalData.currentAttr;
+  evalData.currentCupIndex=index;
+  evalData.currentAttr=evalData.cups[index].lastAttr||'flavor';
+  document.querySelectorAll('.verification-result').forEach(function(el){el.classList.remove('active')});
+  renderCupNavigation();
+  renderAttrCard();
+  updateTotalScore();
+  saveEvalState();
+}
+
+function toggleScoreLock(attr){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var lockKey=attr+'Locked';
+  cup[lockKey]=!cup[lockKey];
+  renderAttrCard();
+  saveEvalState();
+  showToast(cup[lockKey]?'점수 잠금':'점수 잠금 해제');
+}
+
+function renderAttrCard(){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var attr=evalData.currentAttr;
+  var tabs=document.querySelectorAll('.attr-tab');
+  tabs.forEach(function(tab){
+    var tabAttr=tab.getAttribute('data-attr');
+    if(tabAttr===attr){tab.classList.add('active')}
+    else{tab.classList.remove('active')}
+    var noteKey='note'+tabAttr.charAt(0).toUpperCase()+tabAttr.slice(1);
+    if(cup[noteKey]&&cup[noteKey].length>=10){tab.classList.add('filled')}
+    else{tab.classList.remove('filled')}
+  });
+  
+  var lockKey=attr+'Locked';
+  var isLocked=cup[lockKey]||false;
+  var intensityKey=(attr==='aftertaste')?'aftertastePersistence':attr+'Intensity';
+  var noteKey='note'+attr.charAt(0).toUpperCase()+attr.slice(1);
+  var html='<div class="attr-card"><h3 style="text-align:center;margin-bottom:24px">'+attr.toUpperCase()+'</h3>';
+  html+='<div class="score-display" id="scoreDisplay">'+cup[attr].toFixed(2)+'</div>';
+  html+='<div class="score-meaning" id="scoreMeaning">('+getScoreMeaning(cup[attr])+')</div>';
+  if(attr==='sweetness'){
+    html+='<div class="sweetness-multiplier" id="sweetnessMultiplier">x2 = '+(cup[attr]*2).toFixed(2)+'점</div>';
+  }
+  html+='<input type="range" class="score-slider" id="scoreSlider" min="0" max="5" step="0.25" value="'+cup[attr]+'" oninput="updateScore(this.value)" '+(isLocked?'disabled':'')+' >';
+  html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+  html+='<div class="score-lock">';
+  html+='<input type="checkbox" id="lockCheckbox" '+(isLocked?'checked':'')+' onchange="toggleScoreLock(\''+attr+'\')">';
+  html+='<label for="lockCheckbox">점수 확정 (슬라이더 잠금)</label></div>';
+  
+  if(attr!=='overall'){
+    var intensityLabel=(attr==='aftertaste')?'지속성':'강도';
+    html+='<div class="intensity-label">'+intensityLabel+' (점수 아님)</div><div class="intensity-grid">';
+    for(var key in INTENSITY_LEVELS){
+      var level=INTENSITY_LEVELS[key];
+      var selected=(cup[intensityKey]===level.value)?'selected':'';
+      html+='<div class="intensity-btn '+selected+'" onclick="updateIntensity('+level.value+')">';
+      html+='<div>'+level.label+'</div><div style="font-size:13px;margin-top:4px;opacity:0.7">('+level.value+')</div></div>';
+    }
+    html+='</div>';
+  }
+  if(SMART_TAGS[attr]&&attr!=='overall'){
+    html+='<div class="smart-tags-section"><div class="smart-tags-title">Smart Tags</div>';
+    html+='<div class="smart-tags-hint">특성 선택 (최대 '+MAX_TAGS+'개)</div>';
+    html+='<div class="selected-tags" id="selectedTags_'+attr+'">';
+    if(cup.selectedTags[attr]&&cup.selectedTags[attr].length>0){
+      cup.selectedTags[attr].forEach(function(tag){
+        html+='<span class="selected-tag" onclick="removeTag(\''+attr+'\',\''+tag+'\')">'+tag+' ×</span>';
+      });
+    }
+    html+='</div>';
+    
+    if(attr==='flavor'||attr==='aftertaste'||attr==='acidity'||attr==='sweetness'){
+      html+='<div class="category-primary" id="categoryPrimary_'+attr+'">';
+      for(var primary in SMART_TAGS[attr]){
+        html+='<div class="category-btn-primary" onclick="togglePrimary(\''+attr+'\',\''+primary+'\')">'+primary+'</div>';
+      }
+      html+='</div>';
+      for(var primary in SMART_TAGS[attr]){
+        var secondaryObj=SMART_TAGS[attr][primary];
+        html+='<div class="category-secondary" id="secondary_'+attr+'_'+primary+'">';
+        for(var secondary in secondaryObj){
+          html+='<div class="category-btn-secondary" onclick="toggleSecondary(\''+attr+'\',\''+primary+'\',\''+secondary+'\')">'+secondary+'</div>';
+        }
+        html+='</div>';
+        for(var secondary in secondaryObj){
+          var tertiaryArr=secondaryObj[secondary];
+          html+='<div class="category-tertiary" id="tertiary_'+attr+'_'+primary+'_'+secondary+'">';
+          tertiaryArr.forEach(function(tag){
+            var isSelected=cup.selectedTags[attr]&&cup.selectedTags[attr].indexOf(tag)>-1;
+            var isConflict=checkTagConflict(attr,tag,cup.selectedTags[attr]);
+            var conflictClass=isConflict?' conflict':'';
+            html+='<div class="category-btn-tertiary'+(isSelected?' selected':'')+conflictClass+'" onclick="selectTag(\''+attr+'\',\''+tag+'\')">'+tag+'</div>';
+          });
+          html+='</div>';
+        }
+      }
+    }else{
+      html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0">';
+      for(var category in SMART_TAGS[attr]){
+        var tags=SMART_TAGS[attr][category];
+        tags.forEach(function(tag){
+          var isSelected=cup.selectedTags[attr]&&cup.selectedTags[attr].indexOf(tag)>-1;
+          var isConflict=checkTagConflict(attr,tag,cup.selectedTags[attr]);
+          var conflictClass=isConflict?' conflict':'';
+          html+='<div class="category-btn-secondary'+(isSelected?' selected':'')+conflictClass+'" onclick="selectTag(\''+attr+'\',\''+tag+'\')">'+tag+'</div>';
+        });
+      }
+      html+='</div>';
+    }
+    html+='<button class="btn-assistant" onclick="generateComments(\''+attr+'\')">코멘트 생성</button>';
+    html+='<div class="generated-comments-area" id="generatedComments_'+attr+'">';
+    html+='<div style="font-size:12px;color:#999;margin-bottom:8px">생성된 코멘트 (클릭하여 사용)</div>';
+    html+='<div id="commentVariations_'+attr+'"></div></div></div>';
+  }
+  html+='<label class="comment-label">최종 코멘트 (최소 10자)</label>';
+  html+='<textarea id="commentInput" placeholder="Smart Tags로 생성 후 수정하거나 직접 입력" oninput="updateComment(this.value)">';
+  html+=cup[noteKey]+'</textarea>';
+  if(attr!=='overall'){
+    html+='<button class="btn-assistant" onclick="checkComment(\''+attr+'\')">코멘트 검증</button>';
+    html+='<div class="verification-result" id="verification_'+attr+'">';
+    html+='<div class="verification-issue" id="verificationIssue_'+attr+'"></div>';
+    html+='<div class="verification-suggestion" id="verificationSuggestion_'+attr+'"></div></div>';
+  }
+  html+='</div>';
+  document.getElementById('attrCardArea').innerHTML=html;
+}
+
+function checkTagConflict(attr,newTag,currentTags){
+  if(!ATTRIBUTE_CONFLICTS[attr])return false;
+  if(!ATTRIBUTE_CONFLICTS[attr][newTag])return false;
+  
+  var conflicts=ATTRIBUTE_CONFLICTS[attr][newTag];
+  for(var i=0;i<currentTags.length;i++){
+    if(conflicts.indexOf(currentTags[i])>-1){
+      return true;
+    }
+  }
+  return false;
+}
+
+function togglePrimary(attrKey,primary){
+  var secondaryId='secondary_'+attrKey+'_'+primary;
+  var secondaryDiv=document.getElementById(secondaryId);
+  if(!secondaryDiv)return;
+  var allSecondary=document.querySelectorAll('[id^="secondary_'+attrKey+'_"]');
+  allSecondary.forEach(function(div){if(div.id!==secondaryId)div.classList.remove('active')});
+  var allTertiary=document.querySelectorAll('[id^="tertiary_'+attrKey+'_"]');
+  allTertiary.forEach(function(div){div.classList.remove('active')});
+  secondaryDiv.classList.toggle('active');
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var index=cup.selectedTags[attrKey].indexOf(primary);
+  if(index>-1){cup.selectedTags[attrKey].splice(index,1);updateSelectedTagsDisplay(attrKey)}
+  else{if(cup.selectedTags[attrKey].length<MAX_TAGS){cup.selectedTags[attrKey].push(primary);updateSelectedTagsDisplay(attrKey)}}
+}
+
+function toggleSecondary(attrKey,primary,secondary){
+  var tertiaryId='tertiary_'+attrKey+'_'+primary+'_'+secondary;
+  var tertiaryDiv=document.getElementById(tertiaryId);
+  if(!tertiaryDiv)return;
+  var allTertiary=document.querySelectorAll('[id^="tertiary_'+attrKey+'_"]');
+  allTertiary.forEach(function(div){if(div.id!==tertiaryId)div.classList.remove('active')});
+  tertiaryDiv.classList.toggle('active');
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var primaryIndex=cup.selectedTags[attrKey].indexOf(primary);
+  if(primaryIndex>-1)cup.selectedTags[attrKey].splice(primaryIndex,1);
+  var index=cup.selectedTags[attrKey].indexOf(secondary);
+  if(index>-1){cup.selectedTags[attrKey].splice(index,1);updateSelectedTagsDisplay(attrKey)}
+  else{if(cup.selectedTags[attrKey].length<MAX_TAGS){cup.selectedTags[attrKey].push(secondary);updateSelectedTagsDisplay(attrKey)}}
+}
+
+function saveCurrent(){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var attr=evalData.currentAttr;
+  var noteKey='note'+attr.charAt(0).toUpperCase()+attr.slice(1);
+  var commentInput=document.getElementById('commentInput');
+  if(commentInput)cup[noteKey]=commentInput.value;
+  saveEvalState();
+}
+
+function updateScore(val){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var attr=evalData.currentAttr;
+  cup[attr]=parseFloat(val);
+  document.getElementById('scoreDisplay').textContent=parseFloat(val).toFixed(2);
+  document.getElementById('scoreMeaning').textContent='('+getScoreMeaning(parseFloat(val))+')';
+  if(attr==='sweetness'){
+    var sweetMulti=document.getElementById('sweetnessMultiplier');
+    if(sweetMulti)sweetMulti.textContent='x2 = '+(parseFloat(val)*2).toFixed(2)+'점';
+  }
+  updateTotalScore();
+  saveEvalState();
+}
+
+function updateIntensity(val){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var attr=evalData.currentAttr;
+  var intensityKey=(attr==='aftertaste')?'aftertastePersistence':attr+'Intensity';
+  cup[intensityKey]=val;
+  renderAttrCard();
+  saveEvalState();
+}
+
+function updateComment(val){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var attr=evalData.currentAttr;
+  var noteKey='note'+attr.charAt(0).toUpperCase()+attr.slice(1);
+  cup[noteKey]=val;
+  saveEvalState();
+}
+
+function updateTotalScore(){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var total=cup.flavor+cup.aftertaste+cup.acidity+cup.body+(cup.sweetness*2)+cup.overall;
+  document.getElementById('evalTotalScore').textContent=total.toFixed(2);
+  renderCupNavigation();
+}
+
+document.addEventListener('click',function(e){
+  if(e.target.classList.contains('attr-tab')){
+    saveCurrent();
+    evalData.currentAttr=e.target.getAttribute('data-attr');
+    evalData.cups[evalData.currentCupIndex].lastAttr=evalData.currentAttr;
+    renderAttrCard();
+    saveEvalState();
+  }
+});
+
+function selectTag(attrKey,tag){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  if(!cup.selectedTags[attrKey])cup.selectedTags[attrKey]=[];
+  
+  if(checkTagConflict(attrKey,tag,cup.selectedTags[attrKey])){
+    var conflicts=ATTRIBUTE_CONFLICTS[attrKey][tag];
+    var conflictList=conflicts.join(', ');
+    showToast('충돌: "'+tag+'"는 다음과 모순됩니다: '+conflictList,true);
+    return;
+  }
+  
+  var index=cup.selectedTags[attrKey].indexOf(tag);
+  if(index>-1){cup.selectedTags[attrKey].splice(index,1);showToast('태그 삭제: '+tag)}
+  else{if(cup.selectedTags[attrKey].length>=MAX_TAGS){showToast('최대 '+MAX_TAGS+'개까지 선택 가능',true);return}cup.selectedTags[attrKey].push(tag);showToast('태그 추가: '+tag)}
+  updateSelectedTagsDisplay(attrKey);
+  saveEvalState();
+}
+
+function removeTag(attrKey,tag){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var index=cup.selectedTags[attrKey].indexOf(tag);
+  if(index>-1){cup.selectedTags[attrKey].splice(index,1);updateSelectedTagsDisplay(attrKey);showToast('태그 삭제: '+tag);saveEvalState()}
+}
+
+function updateSelectedTagsDisplay(attrKey){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var container=document.getElementById('selectedTags_'+attrKey);
+  if(!container)return;
+  var html='';
+  if(cup.selectedTags[attrKey]&&cup.selectedTags[attrKey].length>0){
+    cup.selectedTags[attrKey].forEach(function(tag){
+      html+='<span class="selected-tag" onclick="removeTag(\''+attrKey+'\',\''+tag+'\')">'+tag+' ×</span>';
+    });
+  }
+  container.innerHTML=html;
+  
+  var allTertiaryBtns=document.querySelectorAll('[id^="tertiary_"] .category-btn-tertiary');
+  allTertiaryBtns.forEach(function(btn){
+    var btnText=btn.innerText;
+    btn.classList.remove('selected','conflict');
+    if(cup.selectedTags[attrKey]&&cup.selectedTags[attrKey].indexOf(btnText)>-1){
+      btn.classList.add('selected');
+    }else if(checkTagConflict(attrKey,btnText,cup.selectedTags[attrKey])){
+      btn.classList.add('conflict');
+    }
+  });
+  
+  var allSecondaryBtns=document.querySelectorAll('.category-btn-secondary');
+  allSecondaryBtns.forEach(function(btn){
+    var btnText=btn.innerText;
+    btn.classList.remove('selected','conflict');
+    if(cup.selectedTags[attrKey]&&cup.selectedTags[attrKey].indexOf(btnText)>-1){
+      btn.classList.add('selected');
+    }else if(checkTagConflict(attrKey,btnText,cup.selectedTags[attrKey])){
+      btn.classList.add('conflict');
+    }
+  });
+}
+
+// ===== v3.0: 계층 구조 중복 제거 적용 =====
+function generateComments(attrKey){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var score=cup[attrKey];
+  var intensityKey='';
+  if(attrKey==='flavor')intensityKey='flavorIntensity';
+  else if(attrKey==='aftertaste')intensityKey='aftertastePersistence';
+  else if(attrKey==='acidity')intensityKey='acidityIntensity';
+  else if(attrKey==='body')intensityKey='bodyIntensity';
+  else if(attrKey==='sweetness')intensityKey='sweetnessIntensity';
+  var intensity=intensityKey?cup[intensityKey]:4;
+  var tags=cup.selectedTags[attrKey]||[];
+  if(tags.length===0){showToast('먼저 특성을 선택하세요',true);return}
+  
+  var filteredTags=filterHierarchicalTags(tags, attrKey);
+  
+  // 필터링 후 태그가 없으면 원본 태그 사용
+  if(filteredTags.length===0){
+    filteredTags=tags.slice(0, MAX_TAGS);
+  } else {
+    // 최대 MAX_TAGS(5)개까지만 사용
+    filteredTags=filteredTags.slice(0, MAX_TAGS);
+  }
+  
+  // ===== 점수와 강도를 교차 검증하여 적절한 표현 선택 =====
+  var intensityExpression='';
+  
+  // 낮은 점수 (0-2.99): 부정적/약한 표현만 사용
+  if(score < 3.0) {
+    if(intensity<=2) intensityExpression='미약한';
+    else if(intensity===3) intensityExpression='약간 존재하는';
+    else if(intensity===4) intensityExpression='존재하는';
+    else if(intensity===5) intensityExpression='감지되는';
+    else if(intensity===6) intensityExpression='인지되는';
+    else intensityExpression='두드러지는';
+  }
+  // 보통 점수 (3.0-3.99): 중립적 표현
+  else if(score < 4.0) {
+    if(intensity<=2) intensityExpression='약한';
+    else if(intensity===3) intensityExpression='다소 약한';
+    else if(intensity===4) intensityExpression='중간 정도의';
+    else if(intensity===5) intensityExpression='적절한';
+    else if(intensity===6) intensityExpression='충분한';
+    else intensityExpression='강한';
+  }
+  // 높은 점수 (4.0+): 긍정적 표현 사용
+  else {
+    if(intensity<=2) intensityExpression='은은한';
+    else if(intensity===3) intensityExpression='부드러운';
+    else if(intensity===4) intensityExpression='균형잡힌';
+    else if(intensity===5) intensityExpression='뚜렷한';
+    else if(intensity===6) intensityExpression='강한';
+    else intensityExpression='매우 강한';
+  }
+  
+  var qualityExpression='',connectWord='',endingPhrase='';
+  if(score>=4.75){qualityExpression='매우 우수하며';connectWord='표현되어';endingPhrase='훌륭한 품질입니다'}
+  else if(score>=4.0){qualityExpression='좋은 수준이며';connectWord='나타나';endingPhrase='좋은 품질입니다'}
+  else if(score>=3.25){qualityExpression='적절하나';connectWord='감지되며';endingPhrase='보통 수준입니다'}
+  else if(score>=3.0){qualityExpression='보통이며';connectWord='있으나';endingPhrase='평범한 수준입니다'}
+  else if(score>=2.25){qualityExpression='부족하며';connectWord='감지되나';endingPhrase='미흡한 품질입니다'}
+  else if(score>=1.5){qualityExpression='낮으며';connectWord='불분명하여';endingPhrase='부정적 품질입니다'}
+  else{qualityExpression='매우 낮으며';connectWord='거의 없어';endingPhrase='매우 부정적입니다'}
+  
+  var tagList=filteredTags.join(', ');
+  
+  // tagList가 비어있으면 기본값 사용
+  if(!tagList||tagList.trim()===''){
+    tagList='특성';
+  }
+  var variations=[];
+  
+  // ===== FLAVOR =====
+  if(attrKey==='flavor'){
+    if(score>=4.0){
+      // 긍정적 표현
+      variations.push(tagList+' 향미가 '+intensityExpression+' 강도로 표현되어 복합적인 플레이버가 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 노트가 조화롭게 나타나며 '+endingPhrase+'.');
+    }else if(score>=3.0){
+      // 중립적 표현
+      variations.push(tagList+' 향미가 '+intensityExpression+' 강도로 감지되며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 노트가 있으나 '+endingPhrase+'.');
+    }else{
+      // 부정적 표현 (2.99 이하)
+      variations.push(tagList+' 향미가 '+intensityExpression+' 강도이나 불분명하며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 노트가 부족하고 '+endingPhrase+'.');
+    }
+  }
+  
+  // ===== AFTERTASTE =====
+  else if(attrKey==='aftertaste'){
+    // 지속성 표현도 점수에 따라 조정
+    var persistenceWord='';
+    if(score>=4.0){
+      persistenceWord=(intensity<=2)?'짧으나 깔끔한':((intensity<=4)?'적절한':'긴');
+    }else if(score>=3.0){
+      persistenceWord=(intensity<=2)?'짧은':((intensity<=4)?'중간':'다소 긴');
+    }else{
+      persistenceWord=(intensity<=2)?'매우 짧은':((intensity<=4)?'부족한':'존재하는');
+    }
+    
+    if(score>=4.0){
+      // 긍정적 표현
+      variations.push(tagList+' 여운이 '+persistenceWord+' 지속성으로 인상적으로 남아 '+endingPhrase+'.');
+      variations.push(persistenceWord+' 지속성의 '+tagList+' 피니시가 풍부하게 이어져 '+endingPhrase+'.');
+    }else if(score>=3.0){
+      // 중립적 표현
+      variations.push(tagList+' 여운이 '+persistenceWord+' 지속성으로 감지되며 '+endingPhrase+'.');
+      variations.push(persistenceWord+' 지속성의 '+tagList+' 피니시가 있으나 '+endingPhrase+'.');
+    }else{
+      // 부정적 표현
+      variations.push(tagList+' 여운이 '+persistenceWord+' 지속성으로 아쉬우며 '+endingPhrase+'.');
+      variations.push(persistenceWord+' 지속성의 '+tagList+' 피니시가 불충분하고 '+endingPhrase+'.');
+    }
+  }
+  
+  // ===== ACIDITY =====
+  else if(attrKey==='acidity'){
+    if(score>=4.0){
+      // 긍정적 표현
+      variations.push(tagList+' 산미가 '+intensityExpression+' 강도로 생동감 있게 느껴지며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 애시디티가 깔끔하고 '+endingPhrase+'.');
+    }else if(score>=3.0){
+      // 중립적 표현
+      variations.push(tagList+' 산미가 '+intensityExpression+' 강도로 감지되며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 애시디티가 있으나 '+endingPhrase+'.');
+    }else{
+      // 부정적 표현
+      variations.push(tagList+' 산미가 '+intensityExpression+' 강도이나 불균형하며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 애시디티가 부족하고 '+endingPhrase+'.');
+    }
+  }
+  
+  // ===== BODY =====
+  else if(attrKey==='body'){
+    if(score>=4.0){
+      // 긍정적 표현
+      variations.push(intensityExpression+' 강도의 '+tagList+' 바디감이 균형 있고 '+endingPhrase+'.');
+      variations.push(tagList+' 질감이 '+intensityExpression+' 강도로 느껴지며 좋은 마우스필로 '+endingPhrase+'.');
+    }else if(score>=3.0){
+      // 중립적 표현
+      variations.push(intensityExpression+' 강도의 '+tagList+' 바디감이 감지되며 '+endingPhrase+'.');
+      variations.push(tagList+' 질감이 '+intensityExpression+' 강도로 있으나 '+endingPhrase+'.');
+    }else{
+      // 부정적 표현
+      variations.push(intensityExpression+' 강도의 '+tagList+' 바디감이 불균형하며 '+endingPhrase+'.');
+      variations.push(tagList+' 질감이 '+intensityExpression+' 강도이나 아쉽고 '+endingPhrase+'.');
+    }
+  }
+  
+  // ===== SWEETNESS =====
+  else if(attrKey==='sweetness'){
+    if(score>=4.0){
+      // 긍정적 표현
+      variations.push(tagList+' 단맛이 '+intensityExpression+' 강도로 자연스럽게 표현되어 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 스위트니스가 깔끔하며 '+endingPhrase+'.');
+    }else if(score>=3.0){
+      // 중립적 표현
+      variations.push(tagList+' 단맛이 '+intensityExpression+' 강도로 감지되며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 스위트니스가 있으나 '+endingPhrase+'.');
+    }else{
+      // 부정적 표현
+      variations.push(tagList+' 단맛이 '+intensityExpression+' 강도이나 불균형하며 '+endingPhrase+'.');
+      variations.push(intensityExpression+' 강도의 '+tagList+' 스위트니스가 부족하고 '+endingPhrase+'.');
+    }
+  }
+  
+  var container=document.getElementById('commentVariations_'+attrKey);
+  if(container){
+    var html='';
+    variations.forEach(function(comment){
+      html+='<div class="comment-variation" onclick="useGeneratedComment(\''+attrKey+'\',`'+comment+'`)">'+comment+'</div>';
+    });
+    container.innerHTML=html;
+  }
+  var commentsArea=document.getElementById('generatedComments_'+attrKey);
+  if(commentsArea)commentsArea.classList.add('active');
+}
+
+function useGeneratedComment(attrKey,comment){
+  var input=document.getElementById('commentInput');
+  if(input){input.value=comment;updateComment(comment);showToast('코멘트 적용됨')}
+}
+
+function checkComment(attrKey){
+  var cup=evalData.cups[evalData.currentCupIndex];
+  var score=cup[attrKey];
+  var intensityKey='';
+  if(attrKey==='flavor')intensityKey='flavorIntensity';
+  else if(attrKey==='aftertaste')intensityKey='aftertastePersistence';
+  else if(attrKey==='acidity')intensityKey='acidityIntensity';
+  else if(attrKey==='body')intensityKey='bodyIntensity';
+  else if(attrKey==='sweetness')intensityKey='sweetnessIntensity';
+  var intensity=intensityKey?cup[intensityKey]:4;
+  var noteKey='note'+attrKey.charAt(0).toUpperCase()+attrKey.slice(1);
+  var comment=cup[noteKey]||'';
+  var selectedTags=cup.selectedTags[attrKey]||[];
+  
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(result){
+      hideOverlay();
+      var verifyDiv=document.getElementById('verification_'+attrKey);
+      var issueDiv=document.getElementById('verificationIssue_'+attrKey);
+      var suggDiv=document.getElementById('verificationSuggestion_'+attrKey);
+      if(!verifyDiv||!issueDiv||!suggDiv)return;
+      verifyDiv.className='verification-result active '+result.severity;
+      if(result.hasIssue){issueDiv.textContent=result.issue;suggDiv.textContent=result.suggestion}
+      else{issueDiv.textContent='검증 통과';suggDiv.textContent=result.suggestion}
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('검증 오류: '+err,true)})
+    .checkCommentLogic(attrKey,score,intensity,comment,selectedTags);
+}
+
+function handleSubmitClick(){
+  if(submitDebounceTimer){
+    showToast('잠시만 기다려주세요...',true);
+    return;
+  }
+  submitDebounceTimer=setTimeout(function(){
+    submitDebounceTimer=null;
+  },3000);
+  
+  submitAllEvaluations();
+}
+
+function submitAllEvaluations(){
+  if(isSubmitting){showToast('제출 진행 중입니다...');return}
+  saveCurrent();
+  var missingComments=[];
+  evalData.cups.forEach(function(cup){
+    ['Flavor','Aftertaste','Acidity','Body','Sweetness','Overall'].forEach(function(attr){
+      var noteKey='note'+attr;
+      if(!cup[noteKey]||cup[noteKey].length<10)missingComments.push('Cup '+cup.cupNumber+' - '+attr);
+    });
+  });
+  
+  if(missingComments.length>0){
+    var warningMsg='다음 항목의 코멘트가 10자 미만입니다:\n\n';
+    warningMsg+=missingComments.join('\n');
+    warningMsg+='\n\n그래도 제출하시겠습니까?';
+    if(!confirm(warningMsg))return;
+  }
+  
+  if(!confirm('총 '+evalData.cups.length+'개 컵을 제출하시겠습니까?'))return;
+  
+  isSubmitting=true;
+  var submitBtn=document.getElementById('submitNavBtn');
+  submitBtn.disabled=true;
+  submitBtn.textContent='제출 중...';
+  showOverlay();
+  var payload={judgeId:currentUser.userID,judgeName:currentUser.name,team:currentUser.team,mode:evalData.mode,process:evalData.process,cups:evalData.cups};
+  
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlay();
+      isSubmitting=false;
+      submitBtn.disabled=false;
+      submitBtn.textContent='제출완료';
+      if(res.success){
+        if(currentUser)localStorage.removeItem('kcr_eval_'+currentUser.userID);
+        showToast('제출 완료!');
+        exitEvaluation();
+      }else{showToast(res.message||'제출 실패',true)}
+    })
+    .withFailureHandler(function(err){
+      hideOverlay();
+      isSubmitting=false;
+      submitBtn.disabled=false;
+      submitBtn.textContent='제출완료';
+      showToast('제출 오류: '+err,true);
+    })
+    .batchSubmitEvaluations(payload);
+}
+
+function exitEvaluation(){
+  stopAutoSave();
+  if(currentUser)localStorage.removeItem('kcr_eval_'+currentUser.userID);
+  document.getElementById('evalContainer').classList.remove('active');
+  evalData={cups:[],currentCupIndex:0,currentAttr:'flavor',startCup:0,endCup:0,mode:''};
+  if(currentUser.role==='admin'){showScreen('adminScreen')}
+  else if(currentUser.role.indexOf('head')===0){showScreen('headScreen')}
+  else{showScreen('judgeScreen')}
+}
+
+function loadCalibrationCups(){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(cups){
+      hideOverlay();
+      if(!cups||cups.length===0){
+        document.getElementById('calCupList').innerHTML='<p style="text-align:center;color:#999;padding:40px">Calibration 데이터가 없습니다.</p>';
+        showScreen('calListScreen');
+        return;
+      }
+      var html='';
+      cups.forEach(function(c){
+        html+='<div class="review-item" onclick="loadCalibrationResult('+c+')">';
+        html+='<h3>Cup '+c+'</h3></div>';
+      });
+      document.getElementById('calCupList').innerHTML=html;
+      showScreen('calListScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getCalibrationCupNumbers();
+}
+
+function loadCalibrationResult(cupNum){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(results){
+      hideOverlay();
+      if(!results||results.length===0){showToast('해당 컵의 평가 결과가 없습니다',true);showScreen('calListScreen');return}
+      
+      var html='<h3 style="text-align:center;margin-bottom:24px">Cup '+cupNum+'</h3>';
+      var judges=results;
+      var totals=judges.map(function(j){return j.total});
+      var avgTotal=totals.reduce(function(a,b){return a+b},0)/totals.length;
+      var variance=totals.reduce(function(acc,val){return acc+Math.pow(val-avgTotal,2)},0)/totals.length;
+      var stdDev=Math.sqrt(variance);
+      var flavors=judges.map(function(j){return j.flavor});
+      var aftertastes=judges.map(function(j){return j.aftertaste});
+      var acidities=judges.map(function(j){return j.acidity});
+      var bodies=judges.map(function(j){return j.body});
+      var sweetnesses=judges.map(function(j){return j.sweetness*2});
+      var overalls=judges.map(function(j){return j.overall});
+      var calcStd=function(arr){var avg=arr.reduce(function(a,b){return a+b},0)/arr.length;var variance=arr.reduce(function(acc,val){return acc+Math.pow(val-avg,2)},0)/arr.length;return Math.sqrt(variance)};
+      html+='<div class="cal-stats">';
+      html+='<div class="cal-stats-title">통계 (평균 ± 표준편차)</div>';
+      html+='<div class="cal-stats-row"><div>Total:</div><div>'+avgTotal.toFixed(2)+' ± '+stdDev.toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Flavor:</div><div>'+(flavors.reduce(function(a,b){return a+b},0)/flavors.length).toFixed(2)+' ± '+calcStd(flavors).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Aftertaste:</div><div>'+(aftertastes.reduce(function(a,b){return a+b},0)/aftertastes.length).toFixed(2)+' ± '+calcStd(aftertastes).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Acidity:</div><div>'+(acidities.reduce(function(a,b){return a+b},0)/acidities.length).toFixed(2)+' ± '+calcStd(acidities).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Body:</div><div>'+(bodies.reduce(function(a,b){return a+b},0)/bodies.length).toFixed(2)+' ± '+calcStd(bodies).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Sweetness:</div><div>'+(sweetnesses.reduce(function(a,b){return a+b},0)/sweetnesses.length).toFixed(2)+' ± '+calcStd(sweetnesses).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Overall:</div><div>'+(overalls.reduce(function(a,b){return a+b},0)/overalls.length).toFixed(2)+' ± '+calcStd(overalls).toFixed(2)+'</div></div>';
+      html+='</div>';
+      judges.forEach(function(j){
+        html+='<div class="cal-judge-row">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+        html+='<strong>'+j.judgeName+'</strong>';
+        html+='<div style="font-size:24px;font-weight:700">'+j.total.toFixed(2)+'</div>';
+        html+='</div>';
+        html+='<div class="cal-scores">';
+        html+='Flavor: '+j.flavor+' ('+j.flavorIntensity+') | ';
+        html+='Aftertaste: '+j.aftertaste+' ('+j.aftertastePersistence+') | ';
+        html+='Acidity: '+j.acidity+' ('+j.acidityIntensity+') | ';
+        html+='Body: '+j.body+' ('+j.bodyIntensity+') | ';
+        html+='Sweetness: '+(j.sweetness*2).toFixed(2)+' ('+j.sweetnessIntensity+') | ';
+        html+='Overall: '+j.overall;
+        html+='</div>';
+        html+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid #333">';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Flavor: '+j.notes.flavor+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Aftertaste: '+j.notes.aftertaste+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Acidity: '+j.notes.acidity+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Body: '+j.notes.body+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Sweetness: '+j.notes.sweetness+'</div>';
+        html+='<div style="font-size:12px;color:#999">Overall: '+j.notes.overall+'</div>';
+        html+='</div></div>';
+      });
+      document.getElementById('calResultArea').innerHTML=html;
+      showScreen('calResultScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getCalibrationResultsByCup(cupNum);
+}
+
+function loadReviews(){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(list){
+      hideOverlay();
+      if(!list||list.length===0){showToast('검수 대기 평가가 없습니다',true);return}
+      var html='';
+      list.forEach(function(item){
+        html+='<div class="review-item" onclick="loadReviewDetail('+item.cup+')">';
+        html+='<h3>Cup '+item.cup+'</h3></div>';
+      });
+      document.getElementById('reviewListArea').innerHTML=html;
+      showScreen('reviewListScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getMyPendingReviews(currentUser.userID);
+}
+
+function loadReviewDetail(cup){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(data){
+      hideOverlay();
+      if(!data){showToast('데이터를 찾을 수 없습니다',true);return}
+      currentReviewData={cup:cup,data:data};
+      var html='<h3 style="text-align:center;margin-bottom:24px">Cup '+cup+' 검수 및 수정</h3>';
+      html+='<div class="review-attr"><h4>Flavor</h4>';
+      html+='<div class="score-display" id="reviewFlavorDisplay">'+data.flavor.toFixed(2)+'</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.flavor)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewFlavorSlider" min="0" max="5" step="0.25" value="'+data.flavor+'" oninput="updateReviewScore(\'flavor\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<div class="intensity-label">강도</div><div class="intensity-grid" id="reviewFlavorIntensityGrid">';
+      for(var i=1;i<=7;i++){
+        var sel=(data.flavorIntensity==i)?'selected':'';
+        html+='<div class="intensity-btn '+sel+'" onclick="updateReviewIntensity(\'flavor\','+i+')">'+INTENSITY_LEVELS[i].label+'<br>('+i+')</div>';
+      }
+      html+='</div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteFlavor">'+data.noteFlavor+'</textarea></div>';
+      html+='<div class="review-attr"><h4>Aftertaste</h4>';
+      html+='<div class="score-display" id="reviewAftertasteDisplay">'+data.aftertaste.toFixed(2)+'</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.aftertaste)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewAftertasteSlider" min="0" max="5" step="0.25" value="'+data.aftertaste+'" oninput="updateReviewScore(\'aftertaste\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<div class="intensity-label">지속성</div><div class="intensity-grid" id="reviewAftertastePersistenceGrid">';
+      for(var i=1;i<=7;i++){
+        var sel=(data.aftertastePersistence==i)?'selected':'';
+        html+='<div class="intensity-btn '+sel+'" onclick="updateReviewIntensity(\'aftertaste\','+i+')">'+INTENSITY_LEVELS[i].label+'<br>('+i+')</div>';
+      }
+      html+='</div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteAftertaste">'+data.noteAftertaste+'</textarea></div>';
+      html+='<div class="review-attr"><h4>Acidity</h4>';
+      html+='<div class="score-display" id="reviewAcidityDisplay">'+data.acidity.toFixed(2)+'</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.acidity)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewAciditySlider" min="0" max="5" step="0.25" value="'+data.acidity+'" oninput="updateReviewScore(\'acidity\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<div class="intensity-label">강도</div><div class="intensity-grid" id="reviewAcidityIntensityGrid">';
+      for(var i=1;i<=7;i++){
+        var sel=(data.acidityIntensity==i)?'selected':'';
+        html+='<div class="intensity-btn '+sel+'" onclick="updateReviewIntensity(\'acidity\','+i+')">'+INTENSITY_LEVELS[i].label+'<br>('+i+')</div>';
+      }
+      html+='</div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteAcidity">'+data.noteAcidity+'</textarea></div>';
+      html+='<div class="review-attr"><h4>Body</h4>';
+      html+='<div class="score-display" id="reviewBodyDisplay">'+data.body.toFixed(2)+'</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.body)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewBodySlider" min="0" max="5" step="0.25" value="'+data.body+'" oninput="updateReviewScore(\'body\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<div class="intensity-label">강도</div><div class="intensity-grid" id="reviewBodyIntensityGrid">';
+      for(var i=1;i<=7;i++){
+        var sel=(data.bodyIntensity==i)?'selected':'';
+        html+='<div class="intensity-btn '+sel+'" onclick="updateReviewIntensity(\'body\','+i+')">'+INTENSITY_LEVELS[i].label+'<br>('+i+')</div>';
+      }
+      html+='</div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteBody">'+data.noteBody+'</textarea></div>';
+      html+='<div class="review-attr"><h4>Sweetness</h4>';
+      html+='<div class="score-display" id="reviewSweetnessDisplay">'+data.sweetness.toFixed(2)+'</div>';
+      html+='<div class="sweetness-multiplier">x2 = '+(data.sweetness*2).toFixed(2)+'점</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.sweetness)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewSweetnessSlider" min="0" max="5" step="0.25" value="'+data.sweetness+'" oninput="updateReviewScore(\'sweetness\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<div class="intensity-label">강도</div><div class="intensity-grid" id="reviewSweetnessIntensityGrid">';
+      for(var i=1;i<=7;i++){
+        var sel=(data.sweetnessIntensity==i)?'selected':'';
+        html+='<div class="intensity-btn '+sel+'" onclick="updateReviewIntensity(\'sweetness\','+i+')">'+INTENSITY_LEVELS[i].label+'<br>('+i+')</div>';
+      }
+      html+='</div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteSweetness">'+data.noteSweetness+'</textarea></div>';
+      html+='<div class="review-attr"><h4>Overall</h4>';
+      html+='<div class="score-display" id="reviewOverallDisplay">'+data.overall.toFixed(2)+'</div>';
+      html+='<div class="score-meaning">('+getScoreMeaning(data.overall)+')</div>';
+      html+='<input type="range" class="score-slider" id="reviewOverallSlider" min="0" max="5" step="0.25" value="'+data.overall+'" oninput="updateReviewScore(\'overall\',this.value)">';
+      html+='<div class="score-labels"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>';
+      html+='<label style="color:#999;font-size:12px;margin-top:16px;display:block">코멘트</label>';
+      html+='<textarea id="reviewNoteOverall">'+data.noteOverall+'</textarea></div>';
+      document.getElementById('reviewDetailArea').innerHTML=html;
+      showScreen('reviewDetailScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getMyScoreDetail(currentUser.userID,cup);
+}
+
+function updateReviewScore(attr,val){
+  var display=document.getElementById('review'+attr.charAt(0).toUpperCase()+attr.slice(1)+'Display');
+  if(display)display.textContent=parseFloat(val).toFixed(2);
+  var meaning=display.nextElementSibling;
+  if(meaning&&meaning.classList.contains('score-meaning')){meaning.textContent='('+getScoreMeaning(parseFloat(val))+')';}
+  if(attr==='sweetness'){
+    var multi=meaning.nextElementSibling;
+    if(multi&&multi.classList.contains('sweetness-multiplier')){multi.textContent='x2 = '+(parseFloat(val)*2).toFixed(2)+'점';}
+  }
+}
+
+function updateReviewIntensity(attr,val){
+  var gridId='review'+(attr.charAt(0).toUpperCase()+attr.slice(1))+(attr==='aftertaste'?'Persistence':'Intensity')+'Grid';
+  var grid=document.getElementById(gridId);
+  if(!grid)return;
+  var btns=grid.querySelectorAll('.intensity-btn');
+  btns.forEach(function(btn,index){
+    if(index+1===val)btn.classList.add('selected');
+    else btn.classList.remove('selected');
+  });
+}
+
+function saveReview(){
+  if(!currentReviewData)return;
+  var updatedData={
+    flavor:parseFloat(document.getElementById('reviewFlavorSlider').value),
+    flavorIntensity:parseInt(document.querySelector('#reviewFlavorIntensityGrid .intensity-btn.selected')?.innerText.match(/\((\d)\)/)?.[1]||4),
+    noteFlavor:document.getElementById('reviewNoteFlavor').value,
+    aftertaste:parseFloat(document.getElementById('reviewAftertasteSlider').value),
+    aftertastePersistence:parseInt(document.querySelector('#reviewAftertastePersistenceGrid .intensity-btn.selected')?.innerText.match(/\((\d)\)/)?.[1]||4),
+    noteAftertaste:document.getElementById('reviewNoteAftertaste').value,
+    acidity:parseFloat(document.getElementById('reviewAciditySlider').value),
+    acidityIntensity:parseInt(document.querySelector('#reviewAcidityIntensityGrid .intensity-btn.selected')?.innerText.match(/\((\d)\)/)?.[1]||4),
+    noteAcidity:document.getElementById('reviewNoteAcidity').value,
+    body:parseFloat(document.getElementById('reviewBodySlider').value),
+    bodyIntensity:parseInt(document.querySelector('#reviewBodyIntensityGrid .intensity-btn.selected')?.innerText.match(/\((\d)\)/)?.[1]||4),
+    noteBody:document.getElementById('reviewNoteBody').value,
+    sweetness:parseFloat(document.getElementById('reviewSweetnessSlider').value),
+    sweetnessIntensity:parseInt(document.querySelector('#reviewSweetnessIntensityGrid .intensity-btn.selected')?.innerText.match(/\((\d)\)/)?.[1]||4),
+    noteSweetness:document.getElementById('reviewNoteSweetness').value,
+    overall:parseFloat(document.getElementById('reviewOverallSlider').value),
+    noteOverall:document.getElementById('reviewNoteOverall').value
+  };
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlay();
+      if(res.success){showToast('검수 완료!');backHome()}
+      else{showToast(res.message||'저장 실패',true)}
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .updateScore(currentUser.userID,currentReviewData.cup,updatedData);
+}
+
+function backToReviewList(){currentReviewData=null;loadReviews()}
+
+function refreshTop50(){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(res){
+      hideOverlay();
+      if(!res.success||res.rankings.length===0){
+        document.getElementById('top50Area').innerHTML='<p style="text-align:center;color:#999;padding:40px">데이터가 없습니다.</p>';
+        return;
+      }
+      var html='<div style="display:grid;gap:8px">';
+      res.rankings.forEach(function(item,index){
+        html+='<div class="review-item" onclick="loadCupDetail('+item.cup+')" style="cursor:pointer">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center">';
+        html+='<div><span style="color:#999;font-size:12px">'+(index+1)+'위</span> ';
+        html+='<span style="font-size:18px;font-weight:700;margin-left:8px">Cup '+item.cup+'</span>';
+        html+='<span style="font-size:12px;color:#999;margin-left:12px">('+item.judgeCount+'명 평가)</span></div>';
+        html+='<div style="font-size:24px;font-weight:700">'+item.sumTotal.toFixed(1)+'</div>';
+        html+='</div></div>';
+      });
+      html+='</div>';
+      document.getElementById('top50Area').innerHTML=html;
+    })
+    .withFailureHandler(function(err){hideOverlay()})
+    .getTop50Rankings();
+}
+
+function loadAllCompletedReviews(){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(list){
+      hideOverlay();
+      if(!list||list.length===0){
+        document.getElementById('completedListArea').innerHTML='<p style="text-align:center;color:#999;padding:40px">검수 완료된 평가가 없습니다.</p>';
+        showScreen('completedListScreen');
+        return;
+      }
+      var html='';
+      list.forEach(function(item){
+        html+='<div class="review-item" onclick="loadCompletedDetail('+item.cup+')">';
+        html+='<h3>Cup '+item.cup+'</h3>';
+        html+='<div style="font-size:14px;color:#999;margin-top:8px">평균: '+item.avgTotal.toFixed(2)+'점 | 평가자 수: '+item.count+'명</div>';
+        html+='</div>';
+      });
+      document.getElementById('completedListArea').innerHTML=html;
+      showScreen('completedListScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getAllCompletedReviews();
+}
+
+function loadCompletedDetail(cup){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(results){
+      hideOverlay();
+      if(!results||results.length===0){showToast('해당 컵의 평가 결과가 없습니다',true);return}
+      
+      var html='<h3 style="text-align:center;margin-bottom:24px">Cup '+cup+' 검수 완료 상세</h3>';
+      
+      var totals=results.map(function(j){return j.total});
+      var avgTotal=totals.reduce(function(a,b){return a+b},0)/totals.length;
+      var variance=totals.reduce(function(acc,val){return acc+Math.pow(val-avgTotal,2)},0)/totals.length;
+      var stdDev=Math.sqrt(variance);
+      
+      var flavors=results.map(function(j){return j.flavor});
+      var aftertastes=results.map(function(j){return j.aftertaste});
+      var acidities=results.map(function(j){return j.acidity});
+      var bodies=results.map(function(j){return j.body});
+      var sweetnesses=results.map(function(j){return j.sweetness*2});
+      var overalls=results.map(function(j){return j.overall});
+      var calcStd=function(arr){var avg=arr.reduce(function(a,b){return a+b},0)/arr.length;var variance=arr.reduce(function(acc,val){return acc+Math.pow(val-avg,2)},0)/arr.length;return Math.sqrt(variance)};
+      
+      html+='<div class="cal-stats">';
+      html+='<div class="cal-stats-title">통계 (평균 ± 표준편차)</div>';
+      html+='<div class="cal-stats-row"><div>Total:</div><div>'+avgTotal.toFixed(2)+' ± '+stdDev.toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Flavor:</div><div>'+(flavors.reduce(function(a,b){return a+b},0)/flavors.length).toFixed(2)+' ± '+calcStd(flavors).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Aftertaste:</div><div>'+(aftertastes.reduce(function(a,b){return a+b},0)/aftertastes.length).toFixed(2)+' ± '+calcStd(aftertastes).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Acidity:</div><div>'+(acidities.reduce(function(a,b){return a+b},0)/acidities.length).toFixed(2)+' ± '+calcStd(acidities).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Body:</div><div>'+(bodies.reduce(function(a,b){return a+b},0)/bodies.length).toFixed(2)+' ± '+calcStd(bodies).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Sweetness:</div><div>'+(sweetnesses.reduce(function(a,b){return a+b},0)/sweetnesses.length).toFixed(2)+' ± '+calcStd(sweetnesses).toFixed(2)+'</div></div>';
+      html+='<div class="cal-stats-row"><div>Overall:</div><div>'+(overalls.reduce(function(a,b){return a+b},0)/overalls.length).toFixed(2)+' ± '+calcStd(overalls).toFixed(2)+'</div></div>';
+      html+='</div>';
+      
+      results.forEach(function(j){
+        html+='<div class="cal-judge-row">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+        html+='<div><strong>'+j.judgeName+'</strong>';
+        
+        var roleText='';
+        if(j.role==='admin'){
+          roleText='관리자';
+        }else if(j.role.indexOf('head')===0){
+          var teamNum=j.role.replace('head','');
+          roleText=teamNum?'헤드심사위원 ('+teamNum+'팀)':'헤드심사위원';
+        }else if(j.role.indexOf('judge')===0){
+          var teamNum=j.role.replace('judge','');
+          roleText=teamNum?'심사위원 ('+teamNum+'팀)':'심사위원';
+        }else{
+          roleText='심사위원';
+        }
+        html+='<span class="role-badge">'+roleText+'</span>';
+        
+        html+='</div>';
+        html+='<div style="font-size:24px;font-weight:700">'+j.total.toFixed(2)+'</div>';
+        html+='</div>';
+        html+='<div class="cal-scores">';
+        html+='Flavor: '+j.flavor+' ('+j.flavorIntensity+') | ';
+        html+='Aftertaste: '+j.aftertaste+' ('+j.aftertastePersistence+') | ';
+        html+='Acidity: '+j.acidity+' ('+j.acidityIntensity+') | ';
+        html+='Body: '+j.body+' ('+j.bodyIntensity+') | ';
+        html+='Sweetness: '+(j.sweetness*2).toFixed(2)+' ('+j.sweetnessIntensity+') | ';
+        html+='Overall: '+j.overall;
+        html+='</div>';
+        html+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid #333">';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Flavor: '+j.notes.flavor+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Aftertaste: '+j.notes.aftertaste+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Acidity: '+j.notes.acidity+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Body: '+j.notes.body+'</div>';
+        html+='<div style="font-size:12px;color:#999;margin-bottom:4px">Sweetness: '+j.notes.sweetness+'</div>';
+        html+='<div style="font-size:12px;color:#999">Overall: '+j.notes.overall+'</div>';
+        html+='</div></div>';
+      });
+      
+      document.getElementById('completedDetailArea').innerHTML=html;
+      showScreen('completedDetailScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getCompletedDetailByCup(cup);
+}
+
+function backHome(){
+  currentReviewData=null;
+  currentCupDetailData=null;
+  if(currentUser.role==='admin'){showScreen('adminScreen');refreshTop50()}
+  else if(currentUser.role.indexOf('head')===0){showScreen('headScreen')}
+  else{showScreen('judgeScreen')}
+}
+
+// ===== v3.0: 자동저장 기능 =====
+function startAutoSave(){
+  stopAutoSave();
+  autoSaveTimer=setInterval(function(){
+    if(evalData.cups&&evalData.cups.length>0){
+      saveEvalState();
+      showAutoSave();
+    }
+  },30000);
+}
+
+function stopAutoSave(){
+  if(autoSaveTimer){
+    clearInterval(autoSaveTimer);
+    autoSaveTimer=null;
+  }
+}
+
+function showAutoSave(){
+  var indicator=document.getElementById('autoSaveIndicator');
+  if(indicator){
+    indicator.classList.add('active');
+    setTimeout(function(){indicator.classList.remove('active')},2000);
+  }
+}
+
+// ===== v3.0: 컵별 상세 평가 표시 =====
+function loadCupDetail(cupNum){
+  showOverlay();
+  google.script.run
+    .withSuccessHandler(function(evaluations){
+      hideOverlay();
+      if(!evaluations||evaluations.length===0){
+        showToast('해당 컵의 평가 데이터가 없습니다',true);
+        return;
+      }
+      
+      currentCupDetailData={cup:cupNum,evaluations:evaluations};
+      
+      var html='<h3 style="text-align:center;margin-bottom:24px">Cup '+cupNum+' - 전체 평가</h3>';
+      
+      html+='<div class="cal-stats">';
+      html+='<div class="cal-stats-title">평가자: '+evaluations.length+'명</div>';
+      html+='</div>';
+      
+      evaluations.forEach(function(ev){
+        html+='<div class="cup-detail-card">';
+        html+='<div class="cup-detail-header">';
+        html+='<div class="cup-detail-judge">'+ev.judgeName+'</div>';
+        html+='<div class="cup-detail-total">'+ev.total.toFixed(2)+'</div>';
+        html+='</div>';
+        html+='<div class="cup-detail-scores">';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Flavor</div><div class="cup-detail-score-value">'+ev.flavor+' ('+ev.flavorIntensity+')</div></div>';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Aftertaste</div><div class="cup-detail-score-value">'+ev.aftertaste+' ('+ev.aftertastePersistence+')</div></div>';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Acidity</div><div class="cup-detail-score-value">'+ev.acidity+' ('+ev.acidityIntensity+')</div></div>';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Body</div><div class="cup-detail-score-value">'+ev.body+' ('+ev.bodyIntensity+')</div></div>';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Sweetness</div><div class="cup-detail-score-value">'+(ev.sweetness*2).toFixed(2)+' ('+ev.sweetnessIntensity+')</div></div>';
+        html+='<div class="cup-detail-score-item"><div class="cup-detail-score-label">Overall</div><div class="cup-detail-score-value">'+ev.overall+'</div></div>';
+        html+='</div>';
+        html+='<div class="cup-detail-comments">';
+        html+='<div class="cup-detail-comment"><strong>Flavor:</strong> '+ev.notes.flavor+'</div>';
+        html+='<div class="cup-detail-comment"><strong>Aftertaste:</strong> '+ev.notes.aftertaste+'</div>';
+        html+='<div class="cup-detail-comment"><strong>Acidity:</strong> '+ev.notes.acidity+'</div>';
+        html+='<div class="cup-detail-comment"><strong>Body:</strong> '+ev.notes.body+'</div>';
+        html+='<div class="cup-detail-comment"><strong>Sweetness:</strong> '+ev.notes.sweetness+'</div>';
+        html+='<div class="cup-detail-comment"><strong>Overall:</strong> '+ev.notes.overall+'</div>';
+        html+='</div></div>';
+      });
+      
+      document.getElementById('cupDetailArea').innerHTML=html;
+      showScreen('cupDetailScreen');
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getAllCupEvaluations(cupNum);
+}
+
+// ===== v3.0: PDF 다운로드 (한글 지원) =====
+function downloadPDF(){
+  if(!window.jspdf||!window.jspdf.jsPDF){
+    showToast('PDF 라이브러리 로딩 중...',true);
+    return;
+  }
+  
+  showOverlay();
+  
+  // TOP 50 데이터 가져오기
+  google.script.run
+    .withSuccessHandler(function(res){
+      if(!res.success||res.rankings.length===0){
+        hideOverlay();
+        showToast('다운로드할 데이터가 없습니다',true);
+        return;
+      }
+      
+      // 임시 HTML 생성
+      var tempDiv=document.createElement('div');
+      tempDiv.style.cssText='position:absolute;left:-9999px;width:800px;background:#fff;color:#000;padding:40px;font-family:Arial,sans-serif';
+      tempDiv.innerHTML='<h1 style="text-align:center;margin-bottom:30px;font-size:24px">KCR Cupping App - TOP 20 Rankings</h1>';
+      
+      var table='<table style="width:100%;border-collapse:collapse">';
+      table+='<thead><tr style="background:#000;color:#fff"><th style="padding:12px;border:1px solid #333">Rank</th><th style="padding:12px;border:1px solid #333">Cup</th><th style="padding:12px;border:1px solid #333">Total Score</th><th style="padding:12px;border:1px solid #333">Judges</th></tr></thead><tbody>';
+      
+      res.rankings.forEach(function(item,index){
+        table+='<tr><td style="padding:10px;border:1px solid #ddd;text-align:center">'+(index+1)+'</td>';
+        table+='<td style="padding:10px;border:1px solid #ddd;text-align:center">Cup '+item.cup+'</td>';
+        table+='<td style="padding:10px;border:1px solid #ddd;text-align:center;font-weight:bold">'+item.sumTotal.toFixed(1)+'</td>';
+        table+='<td style="padding:10px;border:1px solid #ddd;text-align:center">'+item.judgeCount+'</td></tr>';
+      });
+      
+      table+='</tbody></table>';
+      tempDiv.innerHTML+=table;
+      document.body.appendChild(tempDiv);
+      
+      // html2canvas로 캡처
+      html2canvas(tempDiv,{scale:2,backgroundColor:'#ffffff'}).then(function(canvas){
+        document.body.removeChild(tempDiv);
+        
+        var imgData=canvas.toDataURL('image/png');
+        var doc=new window.jspdf.jsPDF('p','mm','a4');
+        var imgWidth=210;
+        var pageHeight=297;
+        var imgHeight=canvas.height*imgWidth/canvas.width;
+        var heightLeft=imgHeight;
+        var position=0;
+        
+        doc.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
+        heightLeft-=pageHeight;
+        
+        while(heightLeft>=0){
+          position=heightLeft-imgHeight;
+          doc.addPage();
+          doc.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
+          heightLeft-=pageHeight;
+        }
+        
+        doc.save('KCR_Top20_'+new Date().toISOString().slice(0,10)+'.pdf');
+        hideOverlay();
+        showToast('PDF 다운로드 완료!');
+      }).catch(function(err){
+        document.body.removeChild(tempDiv);
+        hideOverlay();
+        showToast('PDF 생성 오류: '+err,true);
+      });
+    })
+    .withFailureHandler(function(err){hideOverlay();showToast('오류: '+err,true)})
+    .getTop50Rankings();
+}
+
+function downloadCupPDF(){
+  if(!currentCupDetailData||!window.jspdf||!window.jspdf.jsPDF||!window.html2canvas){
+    showToast('PDF 생성 준비 중...',true);
+    return;
+  }
+  
+  showOverlay();
+  
+  var evaluations=currentCupDetailData.evaluations;
+  var cupNum=currentCupDetailData.cup;
+  var process=evaluations.length>0?evaluations[0].process:'';
+  
+  // A4 디브리핑용 HTML 생성
+  var tempDiv=document.createElement('div');
+  tempDiv.style.cssText='position:absolute;left:-9999px;width:800px;background:#fff;color:#000;padding:30px;font-family:Arial,sans-serif;box-sizing:border-box';
+  
+  var html='<div style="margin-bottom:20px">';
+  html+='<h1 style="text-align:center;font-size:28px;margin:0 0 8px 0;font-weight:bold">Cup '+cupNum+' - Evaluation Report</h1>';
+  html+='<div style="text-align:center;font-size:14px;color:#666;margin-bottom:5px">평가자: '+evaluations.length+'명</div>';
+  if(process){
+    html+='<div style="text-align:center;font-size:13px;color:#333;font-weight:bold;margin-bottom:15px">'+process+' Process</div>';
+  }else{
+    html+='<div style="margin-bottom:10px"></div>';
+  }
+  html+='</div>';
+  
+  // 평가자별 정보 (4-5명이 한 페이지에 들어가도록 압축)
+  html+='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html+='<thead><tr style="background:#000;color:#fff">';
+  html+='<th style="padding:8px;border:1px solid #000;width:15%">평가자</th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">총점</th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">Flavor<br><span style="font-size:9px;font-weight:normal">/5</span></th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">After<br><span style="font-size:9px;font-weight:normal">/5</span></th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">Acid<br><span style="font-size:9px;font-weight:normal">/5</span></th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">Body<br><span style="font-size:9px;font-weight:normal">/5</span></th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">Sweet<br><span style="font-size:9px;font-weight:normal">/10</span></th>';
+  html+='<th style="padding:8px;border:1px solid #000;width:8%">Overall<br><span style="font-size:9px;font-weight:normal">/5</span></th>';
+  html+='</tr></thead><tbody>';
+  
+  evaluations.forEach(function(ev,idx){
+    var bgColor=idx%2===0?'#f9f9f9':'#fff';
+    var roleText=ev.judgeRole==='head'?'(헤드)':'(심사위원)';
+    html+='<tr style="background:'+bgColor+'">';
+    html+='<td style="padding:6px;border:1px solid #ddd;font-weight:bold">'+ev.judgeName+'<br><span style="font-size:9px;color:#666">'+roleText+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center;font-weight:bold;font-size:14px;background:#000;color:#fff">'+ev.total.toFixed(1)+'</td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+ev.flavor+'<br><span style="color:#999;font-size:8px">강도:'+ev.flavorIntensity+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+ev.aftertaste+'<br><span style="color:#999;font-size:8px">지속:'+ev.aftertastePersistence+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+ev.acidity+'<br><span style="color:#999;font-size:8px">강도:'+ev.acidityIntensity+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+ev.body+'<br><span style="color:#999;font-size:8px">강도:'+ev.bodyIntensity+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+(ev.sweetness*2).toFixed(1)+'<br><span style="color:#999;font-size:8px">강도:'+ev.sweetnessIntensity+'</span></td>';
+    html+='<td style="padding:6px;border:1px solid #ddd;text-align:center">'+ev.overall+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  
+  // 코멘트 섹션 (압축)
+  html+='<div style="margin-top:20px">';
+  html+='<h3 style="font-size:14px;margin:0 0 10px 0;font-weight:bold;border-bottom:2px solid #000;padding-bottom:5px">평가 코멘트</h3>';
+  
+  evaluations.forEach(function(ev){
+    var roleText=ev.judgeRole==='head'?'헤드심사위원':'심사위원';
+    html+='<div style="margin-bottom:12px;padding:10px;background:#f5f5f5;border-left:3px solid #000">';
+    html+='<div style="font-weight:bold;margin-bottom:6px;font-size:12px">'+ev.judgeName+' ('+roleText+', '+ev.total.toFixed(1)+'점)</div>';
+    html+='<div style="font-size:9px;line-height:1.4;color:#333">';
+    html+='<div style="margin-bottom:3px"><strong>Flavor:</strong> '+ev.notes.flavor+'</div>';
+    html+='<div style="margin-bottom:3px"><strong>Aftertaste:</strong> '+ev.notes.aftertaste+'</div>';
+    html+='<div style="margin-bottom:3px"><strong>Acidity:</strong> '+ev.notes.acidity+'</div>';
+    html+='<div style="margin-bottom:3px"><strong>Body:</strong> '+ev.notes.body+'</div>';
+    html+='<div style="margin-bottom:3px"><strong>Sweetness:</strong> '+ev.notes.sweetness+'</div>';
+    html+='<div><strong>Overall:</strong> '+ev.notes.overall+'</div>';
+    html+='</div></div>';
+  });
+  html+='</div>';
+  
+  tempDiv.innerHTML=html;
+  document.body.appendChild(tempDiv);
+  
+  // html2canvas로 캡처 (A4 최적화)
+  html2canvas(tempDiv,{
+    scale:2,
+    backgroundColor:'#ffffff',
+    width:800,
+    windowWidth:800
+  }).then(function(canvas){
+    document.body.removeChild(tempDiv);
+    
+    var imgData=canvas.toDataURL('image/png');
+    var doc=new window.jspdf.jsPDF('p','mm','a4');
+    
+    // A4 크기: 210mm x 297mm
+    var pdfWidth=210;
+    var pdfHeight=297;
+    var imgWidth=pdfWidth;
+    var imgHeight=canvas.height*pdfWidth/canvas.width;
+    
+    // 이미지가 A4보다 길면 자동으로 축소
+    if(imgHeight>pdfHeight){
+      imgHeight=pdfHeight;
+      imgWidth=canvas.width*pdfHeight/canvas.height;
+    }
+    
+    // 중앙 정렬
+    var xOffset=(pdfWidth-imgWidth)/2;
+    
+    doc.addImage(imgData,'PNG',xOffset,0,imgWidth,imgHeight);
+    
+    doc.save('KCR_Cup'+cupNum+'_Debriefing_'+new Date().toISOString().slice(0,10)+'.pdf');
+    hideOverlay();
+    showToast('디브리핑 PDF 다운로드 완료!');
+  }).catch(function(err){
+    if(document.body.contains(tempDiv)){
+      document.body.removeChild(tempDiv);
+    }
+    hideOverlay();
+    showToast('PDF 생성 오류: '+err,true);
+  });
+}
+</script>
+</body>
+</html>
